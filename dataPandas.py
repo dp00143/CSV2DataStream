@@ -14,7 +14,7 @@ class Stream(object):
 
 
     def __init__(self, data_path, file_name):
-        self.data = pandas.read_csv(os.path.join(data_path,file_name))
+        self.data = pandas.read_csv(os.path.join(data_path, file_name))
         self.data['TIMESTAMP'] = self.data['TIMESTAMP'].astype('datetime64[ns]')
         self.data.ffill(inplace=True)
 
@@ -81,6 +81,25 @@ class Stream(object):
 
     def get_end_date(self):
         return self.data['TIMESTAMP'].max()
+
+
+def read_in_streams(main_data_path, context_data_path):
+    main_streams = {}
+
+    for file_name in os.listdir(main_data_path):
+        name, extension = file_name.split('.')
+        if extension == '.csv':
+            main_streams[name] = Stream(main_data_path, file_name)
+    main_features = main_streams.values()[0].get_feature_names()
+
+    context_stream = {}
+    for file_name in os.listdir(context_data_path):
+        name, extension = file_name.split('.')
+        if extension == '.csv':
+            context_stream = Stream(context_data_path, file_name)
+
+    context_features = context_stream.get_feature_names()
+    return main_streams, main_features, context_stream, context_features
 
 if __name__ == '__main__':
     time_format = '%Y-%m-%dT%H'
