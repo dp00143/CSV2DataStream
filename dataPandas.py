@@ -24,6 +24,8 @@ class Stream(object):
         window = self.data[select]
         return window[column]
 
+    # def get_time_window_multiple_colums(self):
+
     def get_feature_names(self):
         filtr = ['TIMESTAMP', 'rain', 'status', 'avgMeasuredTime', 'extID', 'medianMeasuredTime', '_id',
                   'REPORT_ID']
@@ -88,14 +90,14 @@ def read_in_streams(main_data_path, context_data_path):
 
     for file_name in os.listdir(main_data_path):
         name, extension = file_name.split('.')
-        if extension == '.csv':
+        if extension == 'csv':
             main_streams[name] = Stream(main_data_path, file_name)
     main_features = main_streams.values()[0].get_feature_names()
 
     context_stream = {}
     for file_name in os.listdir(context_data_path):
         name, extension = file_name.split('.')
-        if extension == '.csv':
+        if extension == 'csv':
             context_stream = Stream(context_data_path, file_name)
 
     context_features = context_stream.get_feature_names()
