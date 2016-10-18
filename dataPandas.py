@@ -14,6 +14,7 @@ class Stream(object):
         self.data = pandas.read_csv(os.path.join(data_path, file_name))
         self.data['TIMESTAMP'] = self.data['TIMESTAMP'].astype('datetime64[ns]')
         self.data.ffill(inplace=True)
+        self.data.sort_values(by='TIMESTAMP', inplace=True)
 
     def get_time_window(self, column, start, end):
         select = (self.data['TIMESTAMP'] >= start) & \
@@ -23,6 +24,7 @@ class Stream(object):
 
     def get_point_in_time(self, start):
         select = (self.data['TIMESTAMP'] >= start)
+        # select = (self.data['TIMESTAMP'] < start)
         window = self.data[select]
         point = self.data[select].drop(['TIMESTAMP'], axis=1).values[0]
         return point
