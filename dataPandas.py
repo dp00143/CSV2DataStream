@@ -12,25 +12,40 @@ __author__ = 'daniel'
 class Stream(object):
     def __init__(self, data_path, file_name):
         self.data = pandas.read_csv(os.path.join(data_path, file_name))
-        self.data['TIMESTAMP'] = self.data['TIMESTAMP'].astype('datetime64[ns]')
-        self.data.ffill(inplace=True)
+        self.data[u'TIMESTAMP'] = self.data[u'TIMESTAMP'].astype('datetime64[ns]')
         self.data.sort_values(by='TIMESTAMP', inplace=True)
+        self.data.set_index([u'TIMESTAMP'], inplace=True)
+        self.data.bfill(inplace=True)
+
+    def get_time_range(self):
+        start_date = self.data.first_valid_index()
+        end_date = self.data.last_valid_index()
+        return start_date, end_date
+
+    def fill_in_missing_values(self, startdate, enddate, freq='5min'):
+        date_index = pandas.date_range(startdate, enddate, freq=freq)
+        self.data = self.data.reindex(date_index)
+        self.data.bfill(inplace=True)
 
     def get_time_window(self, column, start, end):
-        select = (self.data['TIMESTAMP'] >= start) & \
-                 (self.data['TIMESTAMP'] < end)
+        select = (self.data[u'TIMESTAMP'] >= start) & \
+                 (self.data[u'TIMESTAMP'] < end)
         window = self.data[select]
         return window[column]
 
     def get_point_in_time(self, start):
-        select = (self.data['TIMESTAMP'] >= start)
-        # select = (self.data['TIMESTAMP'] < start)
-        window = self.data[select]
-        point = self.data[select].drop(['TIMESTAMP'], axis=1).values[0]
+        select = (self.data[u'TIMESTAMP'] >= start)
+        point = self.data[select].drop([u'TIMESTAMP'], axis=1).values[0]
         return point
 
+    def get_points_in_time_frame(self, start, end):
+        select = (self.data[u'TIMESTAMP'] >= start) & \
+                 (self.data[u'TIMESTAMP'] < end)
+        window = self.data[select]
+        return window.drop([u'TIMESTAMP'], axis=1)
+
     def get_feature_names(self):
-        filtr = ['TIMESTAMP', 'rain', 'status', 'avgMeasuredTime', 'extID', 'medianMeasuredTime', '_id',
+        filtr = [u'TIMESTAMP', 'rain', 'status', 'avgMeasuredTime', 'extID', 'medianMeasuredTime', '_id',
                  'REPORT_ID']
         feature_names = [fname for fname in self.data.keys() if fname not in filtr]
         return feature_names
@@ -65,10 +80,10 @@ class Stream(object):
         plt.show()
 
     def get_start_date(self):
-        return self.data['TIMESTAMP'].min()
+        return self.data[u'TIMESTAMP'].min()
 
     def get_end_date(self):
-        return self.data['TIMESTAMP'].max()
+        return self.data[u'TIMESTAMP'].max()
 
 
 def calculate_betas_custom_distribution(self, pdf, x_grid):
