@@ -13,7 +13,7 @@ class Stream(object):
     def __init__(self, data_path, file_name):
         self.data = pandas.read_csv(os.path.join(data_path, file_name))
         self.data[u'TIMESTAMP'] = self.data[u'TIMESTAMP'].astype('datetime64[ns]')
-        self.data.sort_values(by='TIMESTAMP', inplace=True)
+        self.data.sort_values(by=u'TIMESTAMP', inplace=True)
         self.data.set_index([u'TIMESTAMP'], inplace=True)
         self.data.bfill(inplace=True)
 
@@ -24,30 +24,43 @@ class Stream(object):
 
     def fill_in_missing_values(self, startdate, enddate, freq='5min'):
         date_index = pandas.date_range(startdate, enddate, freq=freq)
+        dup = self.data.index.duplicated()
+        if any(dup):
+            for i, d in enumerate(dup):
+                if d:
+                    double_index = self.data.index[i]
+            print 'oh'
+
         self.data = self.data.reindex(date_index)
         self.data.bfill(inplace=True)
 
     def get_time_window(self, column, start, end):
-        select = (self.data[u'TIMESTAMP'] >= start) & \
-                 (self.data[u'TIMESTAMP'] < end)
+        select = (self.data.index >= start) & \
+                 (self.data.index < end)
         window = self.data[select]
         return window[column]
 
     def get_point_in_time(self, start):
-        select = (self.data[u'TIMESTAMP'] >= start)
-        point = self.data[select].drop([u'TIMESTAMP'], axis=1).values[0]
+        select = (self.data.index >= start)
+        point = self.data[select].values[0]
         return point
 
     def get_points_in_time_frame(self, start, end):
-        select = (self.data[u'TIMESTAMP'] >= start) & \
-                 (self.data[u'TIMESTAMP'] < end)
+        select = (self.data.index >= start) & \
+                 (self.data.index < end)
         window = self.data[select]
-        return window.drop([u'TIMESTAMP'], axis=1)
+        return window
+
+    def transform_time_window_for_neural_network_input(self, start, end):
+        window = self.get_points_in_time_frame(start, end)
+        window = numpy.array(map((lambda x: [x]), window.values))
+        return window
+
 
     def get_feature_names(self):
-        filtr = [u'TIMESTAMP', 'rain', 'status', 'avgMeasuredTime', 'extID', 'medianMeasuredTime', '_id',
-                 'REPORT_ID']
-        feature_names = [fname for fname in self.data.keys() if fname not in filtr]
+        filtr = [u'TIMESTAMP', u'rain', u'status', u'avgMeasuredTime', u'extID', u'medianMeasuredTime', u'_id',
+                 u'REPORT_ID']
+        feature_names = [f_name for f_name in self.data.keys() if f_name not in filtr]
         return feature_names
 
     def get_pdf_of_time_window(self, column, start, end):
@@ -71,7 +84,7 @@ class Stream(object):
         pdf, x_grid = self.get_pdf_of_time_window(column, start, end)
         fig, ax = plt.subplots()
         ax.plot(x_grid, pdf, "-b")
-        betas = self.calculate_betas_custom_distribution(pdf, x_grid)
+        betas = calculate_betas_custom_distribution(pdf, x_grid)
         pprint(betas)
         for beta in betas:
             plt.axvline(x=beta, color='red')
@@ -80,13 +93,14 @@ class Stream(object):
         plt.show()
 
     def get_start_date(self):
-        return self.data[u'TIMESTAMP'].min()
+        return self.data.first_valid_index()
 
     def get_end_date(self):
-        return self.data[u'TIMESTAMP'].max()
+        return self.data.last_valid_index()
 
 
-def calculate_betas_custom_distribution(self, pdf, x_grid):
+
+def calculate_betas_custom_distribution(pdf, x_grid):
     norm_constant = sum(pdf)
     # normalize values so they are between 0 and 1
     pdf = [float(x) / float(norm_constant) for x in pdf]
