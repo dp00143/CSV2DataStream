@@ -45,14 +45,17 @@ class Stream(object):
         point = self.data[select].values[0]
         return point
 
-    def get_points_in_time_frame(self, start, end):
+    def get_points_in_time_frame(self, start, end, column_or_columns=None):
         select = (self.data.index >= start) & \
                  (self.data.index < end)
-        window = self.data[select]
+        if column_or_columns is None:
+            window = self.data[select]
+        else:
+            window = self.data[select][column_or_columns]
         return window
 
-    def transform_time_window_for_neural_network_input(self, start, end):
-        window = self.get_points_in_time_frame(start, end)
+    def transform_time_window_for_neural_network_input(self, start, end, column_or_columns=None):
+        window = self.get_points_in_time_frame(start, end, column_or_columns)
         window = numpy.array(map((lambda x: [x]), window.values))
         return window
 
