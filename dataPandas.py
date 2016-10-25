@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 
 __author__ = 'daniel'
 
+time_format = '%Y-%m-%dT%H:%M'
 
 class Stream(object):
     def __init__(self, data_path, file_name):
@@ -25,12 +26,13 @@ class Stream(object):
     def fill_in_missing_values(self, startdate, enddate, freq='5min'):
         date_index = pandas.date_range(startdate, enddate, freq=freq)
         dup = self.data.index.duplicated()
+        double_idxes = []
         if any(dup):
             for i, d in enumerate(dup):
                 if d:
-                    double_index = self.data.index[i]
-            print 'oh'
-
+                   double_idxes.append(self.data.index[i])
+        dates = map(lambda x: x.strftime(time_format), self.data.loc[double_idxes])
+        self.data.drop(pandas.to_datetime(dates))
         self.data = self.data.reindex(date_index)
         self.data.bfill(inplace=True)
 
